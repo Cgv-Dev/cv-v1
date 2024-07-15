@@ -9,19 +9,41 @@ import BashIcon from '../assets/images/bash.png';
 import PythonIcon from '../assets/images/python.png';
 import SQLIcon from '../assets/images/sql.png';
 import ISOIcon from '../assets/images/iso.png';
+import SecurityIcon from '@mui/icons-material/Security';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import ReportProblemIcon from '@mui/icons-material/ReportProblem';
+import EventNoteIcon from '@mui/icons-material/EventNote';
+import ShieldIcon from '@mui/icons-material/Shield';
+import DnsIcon from '@mui/icons-material/Dns';
+import LockIcon from '@mui/icons-material/Lock';
+import WifiIcon from '@mui/icons-material/Wifi';
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import CIcon from '../assets/images/c.png';
 
 const devOpsSkills = [
   { name: 'Kubernetes', icon: <img src={KubernetesIcon} style={{ width: 60, height: 60 }} alt="Kubernetes" /> },
   { name: 'Docker', icon: <img src={DockerIcon} style={{ width: 60, height: 60 }} alt="Docker" /> },
-  { name: 'Git', icon: <GitHub sx={{ fontSize: 60, color: '#F05032' }} alt="Git" /> },
+  { name: 'git', icon: <GitHub sx={{ fontSize: 60, color: '#F05032' }} alt="Git" /> },
 ];
 
 const cyberSecuritySkills = [
-  { name: 'Metasploit', icon: <img src={MetasploitIcon} style={{ width: 60, height: 60 }} alt="Metasploit" /> },
-  { name: 'Bash', icon: <img src={BashIcon} style={{ width: 80, height: 60 }} alt="Bash" /> },
-  { name: 'Python', icon: <img src={PythonIcon} style={{ width: 60, height: 60 }} alt="Python" /> },
-  { name: 'SQL', icon: <img src={SQLIcon} style={{ width: 60, height: 60 }} alt="SQL" /> },
-  { name: 'isoFamily', icon: <img src={ISOIcon} style={{ width: 60, height: 60 }} alt="ISO 27001" /> },
+  { name: 'Metasploit', icon: <img src={MetasploitIcon} style={{ width: 60, height: 60 }} alt="Metasploit" />, text: 'Metasploit' },
+  { name: 'Bash', icon: <img src={BashIcon} style={{ width: 80, height: 60 }} alt="Bash" />, text: 'Bash' },
+  { name: 'Python', icon: <img src={PythonIcon} style={{ width: 60, height: 60 }} alt="Python" />, text: 'Python' },
+  { name: 'C', icon: <img src={CIcon} style={{ width: 60, height: 60 }} alt="C" />, text: 'C' },
+  { name: 'SQL', icon: <img src={SQLIcon} style={{ width: 60, height: 60 }} alt="SQL" />, text: 'SQL' },
+  { name: 'isoFamily', icon: <img src={ISOIcon} style={{ width: 60, height: 60 }} alt="ISO 27001" />, text: 'isoFamily' },
+  { name: 'offensiveSecurity', icon: <SecurityIcon sx={{ fontSize: 60 }} />, text: 'offensiveSecurity' },
+  { name: 'forensicAnalysis', icon: <AssessmentIcon sx={{ fontSize: 60 }} />, text: 'forensicAnalysis' },
+  { name: 'malwareAnalysis', icon: <BugReportIcon sx={{ fontSize: 60 }} />, text: 'malwareAnalysis' },
+  { name: 'riskAnalysis', icon: <ReportProblemIcon sx={{ fontSize: 60 }} />, text: 'riskAnalysis' },
+  { name: 'siem', icon: <EventNoteIcon sx={{ fontSize: 60 }} />, text: 'siem' },
+  { name: 'idsIps', icon: <ShieldIcon sx={{ fontSize: 60 }} />, text: 'idsIps' },
+  { name: 'firewall', icon: <DnsIcon sx={{ fontSize: 60 }} />, text: 'firewall' },
+  { name: 'dataProtection', icon: <LockIcon sx={{ fontSize: 60 }} />, text: 'dataProtection' },
+  { name: 'communicationProtocols', icon: <WifiIcon sx={{ fontSize: 60 }} />, text: 'communicationProtocols' },
+  { name: 'identificationAuthentication', icon: <FingerprintIcon sx={{ fontSize: 60 }} />, text: 'identificationAuthentication' },
 ];
 
 const Skills = () => {
@@ -43,7 +65,7 @@ const Skills = () => {
               <Box display="flex" flexDirection="column" alignItems="center">
                 {skill.icon}
                 <Typography variant="subtitle1" align="center">
-                  {skill.name}
+                  {t(skill.name)}
                 </Typography>
               </Box>
             </Grid>
@@ -61,7 +83,7 @@ const Skills = () => {
               <Box display="flex" flexDirection="column" alignItems="center">
                 {skill.icon}
                 <Typography variant="subtitle1" align="center">
-                  {t(skill.name)} {/*Se usa t para traducir el nombre con i18n */}
+                  {t(skill.name) !== skill.name ? t(skill.name) : t(skill.text)}
                 </Typography>
               </Box>
             </Grid>
