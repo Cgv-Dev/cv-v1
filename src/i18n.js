@@ -24,7 +24,8 @@ const resources = {
       phone: 'Phone:',
       residence: 'Residence:',
       email: 'Email:',
-      responsible: 'I consider myself a responsible person in the work environment and always put maximum effort into everything I do. I also consider myself good at working under pressure.',
+      responsible: "I consider myself a responsible person in the work environment; I always put forth my maximum effort in everything I do. Additionally, I believe I work well in teams and maintain a continuous focus on learning.\n" +
+      "I am eager to apply the academic knowledge acquired during my master's in Cybersecurity.",
       languages: 'Languages',
       education: 'Education',
       degree: 'Degree',
@@ -120,7 +121,8 @@ const resources = {
       phone: 'Teléfono:',
       residence: 'Residencia:',
       email: 'Email:',
-      responsible: 'Me considero una persona responsable en el entorno de trabajo y siempre pongo el máximo esfuerzo en todo lo que hago, además que considero que soy bueno trabajando bajo presión.',
+      responsible: "Me considero una persona responsable en el entorno de trabajo, siempre pongo el máximo esfuerzo en todo lo que hago y considero que soy bueno trabajando en equipo. Además, tengo un enfoque continuo en el aprendizaje.\n" +
+      "Tengo muchas ganas de aplicar los conocimientos académicos adquiridos en el máster de Ciberseguridad.",
       languages: 'Idiomas',
       education: 'Educación',
       degree: 'Grado',
