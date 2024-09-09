@@ -33,7 +33,6 @@ const resources = {
       period: 'Period',
       grade: 'Grade',
       git: 'Code Versioning with Git',
-      portfolioProject: 'View Project Documentation',
       contactTitle: 'Contact',
       nameLabel: 'Your Name',
       emailLabel: 'Your Email',
@@ -85,6 +84,12 @@ const resources = {
       projects: {
         0: {
           description: 'Application based on Augmented Reality for the development of STEM skills, carried out for the Final Degree Project in Software Engineering.',
+          buttonText: 'View project documentation'
+        },
+        1: {
+           title: 'Custom Metasploit Module for Known Kubernetes CVEs',
+           description: 'Custom Metasploit module to exploit Kubernetes CVE-2023-2728 and CVE-2024-3177, related to the secrets mounting policy, part of the Cybersecurity Master\'s Thesis Project.',
+           buttonText: 'View project repository'
         },
       },
       offensiveSecurity: 'Offensive Security',
@@ -129,8 +134,7 @@ const resources = {
       institution: 'Institución',
       period: 'Periodo',
       grade: 'Nota',
-      git: 'Versionado de Código con Git',
-      portfolioProject: 'Ver Documentación del Proyecto',
+      git: 'Control de versiones del código con Git',
       contactTitle: 'Contacto',
       nameLabel: 'Tu Nombre',
       emailLabel: 'Tu Email',
@@ -182,6 +186,12 @@ const resources = {
       projects: {
         0: {
           description: 'Aplicación basada en Realidad Aumentada para el desarrollo de competencias STEM, realizada para el trabajo de Fin de Grado de Ingeniería del Software',
+          buttonText: 'Ver Documentación del Proyecto'
+        },
+        1: {
+          title: 'Módulo Personalizado de Metasploit para CVEs conocidas en Kubernetes',
+          description: 'Módulo personalizado de Metasploit para explotar CVE-2023-2728 y CVE-2024-3177 de Kubernetes, relacionadas con la política de montaje de secretos, parte del Proyecto Fin de Máster en Ciberseguridad.',
+          buttonText: 'Ver repositorio del Proyecto'
         },
       },
       offensiveSecurity: 'Seguridad ofensiva',

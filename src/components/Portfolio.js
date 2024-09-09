@@ -3,6 +3,7 @@ import { Container, Typography, Grid, Card, CardContent, CardMedia, Button, Box 
 import { useTranslation } from 'react-i18next';
 import tfgIcon from '../assets/images/tfg1.png';
 import pdfFile from '../assets/pdf/portfolio.pdf';
+import metaIcon from '../assets/images/metasploit2.png';
 
 const projects = [
   {
@@ -10,6 +11,14 @@ const projects = [
     description: 'projects.0.description',
     image: tfgIcon,
     link: pdfFile,
+    buttonText: 'projects.0.buttonText',
+  },
+  {
+    title: 'projects.1.title',
+    description: 'projects.1.description',
+    image: metaIcon,
+    link: 'https://github.com/Cgv-Dev/Metasploit-Module-TFM',
+    buttonText: 'projects.1.buttonText',
   },
 ];
 
@@ -42,7 +51,7 @@ const Portfolio = () => {
                     rel="noopener noreferrer"
                     sx={{ width: '100%' }}
                   >
-                    {t('portfolioProject')}
+                    {t(project.buttonText)}
                   </Button>
                 </Box>
               </CardContent>
