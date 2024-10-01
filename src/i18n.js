@@ -63,6 +63,10 @@ const resources = {
                         Creating and testing Webhooks.`,
         },
       ],
+      languages_esp: {
+        "Spanish": "Spanish",
+        "English": "English"
+      },
       languageLevels: {
         Spanish: 'Native',
         English: 'Intermediate-High Level (B2)',
@@ -77,8 +81,8 @@ const resources = {
         {
           degree: 'Bilingual Master in Cybersecurity',
           institution: 'Carlos III University of Madrid',
-          period: '2023 - Present',
-          grade: 'Average grade: 8.37 (Pending the final project)',
+          period: '2023 - 2024',
+          grade: 'Average grade: 8.46',
         },
       ],
       projects: {
@@ -165,6 +169,10 @@ const resources = {
                         Creación y prueba de Webhooks.`,
         },
       ],
+      languages_esp: {
+        "Spanish": "Español",
+        "English": "Inglés"
+      },
       languageLevels: {
         Spanish: 'Nativo',
         English: 'Nivel medio-Alto (B2)',
@@ -179,8 +187,8 @@ const resources = {
         {
           degree: 'Máster bilingüe en Ciberseguridad',
           institution: 'Universidad Carlos III de Madrid',
-          period: '2023 - Actualidad',
-          grade: 'Nota media: 8.37 (A falta de entregar el TFM)',
+          period: '2023 - 2024',
+          grade: 'Nota media: 8.46',
         },
       ],
       projects: {

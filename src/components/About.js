@@ -17,12 +17,12 @@ const About = () => {
 
   const languages = [
     {
-      name: t('Spanish'),
+      name: t('languages_esp.Spanish'),
       level: t('languageLevels.Spanish'),
       flag: spImg,
     },
     {
-      name: t('English'),
+      name: t('languages_esp.English'),
       level: t('languageLevels.English'),
       flag: ukImg,
     },
